@@ -1,0 +1,39 @@
+{
+  "name": "rasa-ruang-restoran",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sistem pemesanan restoran sederhana untuk praktik sertifikasi.",
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "db:setup": "node --env-file-if-exists=.env scripts/setup-db.js",
+    "seed:demo": "node --env-file-if-exists=.env scripts/seed-demo.js",
+    "test": "node --test tests/unit.test.js tests/service.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/unit.test.js tests/service.test.js",
+    "test:integration": "node --env-file-if-exists=.env --test tests/integration.test.js",
+    "test:http": "node --env-file-if-exists=.env scripts/verify-http.js",
+    "check": "node scripts/check-syntax.js",
+    "debug": "node --inspect=127.0.0.1:9229 --env-file-if-exists=.env src/server.js",
+    "dependency:report": "node scripts/dependency-report.js",
+    "ppt:generate": "node scripts/generate-presentation.js",
+    "docs:system": "node scripts/generate-system-document.js",
+    "docs:generate": "node scripts/generate-documents.js && node docs/audit-2026-10-12/export-report.mjs && node scripts/generate-system-document.js",
+    "package:submission": "node scripts/package-submission.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0"
+  },
+  "devDependencies": {
+    "archiver": "^8.0.0",
+    "docx": "^9.5.0",
+    "pptxgenjs": "^4.0.1"
+  },
+  "overrides": {
+    "image-size": "^2.0.4"
+  }
+}

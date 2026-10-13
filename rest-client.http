@@ -1,0 +1,341 @@
+# REST Client (VS Code, extension humao.rest-client).
+# Jalankan npm run db:setup dan npm start; kirim request BERURUTAN dari atas.
+# Semua request memakai data pelanggan baru; reservasi uji tetap menjadi riwayat.
+# Untuk ulang alur: mulai lagi dari 01. Nomor pelanggan dibuat acak pada 05.
+# @date default adalah besok menurut UTC, pukul 18:00 WIB selalu mendatang.
+# Jika meja bentrok dengan data Anda, ganti date ke tanggal kosong, lalu ulang dari 05.
+# Unit kompetensi dibuktikan lewat kode/debugger/tes; HTTP menguji endpoint dan aturan bisnis.
+@baseUrl = http://127.0.0.1:3001
+@date = {{$datetime 'YYYY-MM-DD' 1 d}}
+@customerId = {{createCustomer.response.body.$.id}}
+@phone = {{createCustomer.response.body.$.phone}}
+@tableId = {{getTables.response.body.$[0].id}}
+@otherTableId = {{getTables.response.body.$[1].id}}
+@menuId = {{getMenu.response.body.$[0].id}}
+@reservationId = {{createReservation.response.body.$.id}}
+@startAt = {{createReservation.request.body.$.startAt}}
+@cancelId = {{createCancellation.response.body.$.id}}
+@replacementId = {{createReplacement.response.body.$.id}}
+@temporaryCustomerId = {{createTemporaryCustomer.response.body.$.id}}
+
+### 01 — Health: database terhubung (200)
+# @expect 200
+# @name health
+GET {{baseUrl}}/api/health
+
+### 02 — Halaman HTML: tersedia (200)
+# @expect 200
+GET {{baseUrl}}/
+
+### 03 — Referensi meja: ambil ID dari response (200)
+# @expect 200
+# @name getTables
+GET {{baseUrl}}/api/tables
+
+### 04 — Menu aktif: ambil ID/harga dari response (200)
+# @expect 200
+# @name getMenu
+GET {{baseUrl}}/api/menu
+
+### 05 — Tambah pelanggan baru (201); jalankan sebelum request ber-ID
+# @expect 201
+# @name createCustomer
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Peserta REST Client",
+  "phone": "089{{$randomInt 100000000 999999999}}",
+  "email": "rest-client@example.com"
+}
+
+### 06 — Daftar pelanggan dan reservation_count (200)
+# @expect 200
+GET {{baseUrl}}/api/customers
+
+### 07 — Ubah pelanggan; ID dan telepon memakai response 05 (200)
+# @expect 200
+PUT {{baseUrl}}/api/customers/{{customerId}}
+Content-Type: application/json
+
+{
+  "name": "Peserta REST Client Diperbarui",
+  "phone": "{{phone}}",
+  "email": "peserta@example.com"
+}
+
+### 08 — Telepon duplikat: harus ditolak (409)
+# @expect 409
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Duplikat",
+  "phone": "{{phone}}"
+}
+
+### 09 — Buat reservasi dua tamu dan dua porsi; total klien diabaikan (201)
+# @expect 201
+# @name createReservation
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "tableId": {{tableId}},
+  "startAt": "{{date}}T18:00",
+  "duration": 90,
+  "guests": 2,
+  "notes": "Demonstrasi REST Client",
+  "items": [{ "menuItemId": {{menuId}}, "quantity": 2 }],
+  "total": 1,
+  "unitPrice": 1
+}
+
+### 10 — Daftar reservasi dengan rincian items dan harga snapshot (200)
+# @expect 200
+GET {{baseUrl}}/api/reservations?from={{date}}&to={{date}}
+
+### 11 — Tamu melebihi kapasitas meja pertama seed (400)
+# @expect 400
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 8, "items": []
+}
+
+### 12 — Slot yang sama masih confirmed: bentrok (409)
+# @expect 409
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2, "items": []
+}
+
+### 13 — Menu tidak ada pada meja lain: rollback, tidak menyimpan reservasi (404)
+# @expect 404
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{otherTableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2,
+  "items": [{ "menuItemId": 2147483647, "quantity": 1 }]
+}
+
+### 14 — Ubah reservasi confirmed: tiga porsi dan total dihitung ulang (200)
+# @expect 200
+PUT {{baseUrl}}/api/reservations/{{reservationId}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2,
+  "notes": "Jumlah menu diperbarui",
+  "items": [{ "menuItemId": {{menuId}}, "quantity": 3 }]
+}
+
+### 15 — Melompat confirmed langsung ke completed ditolak (409)
+# @expect 409
+PATCH {{baseUrl}}/api/reservations/{{reservationId}}/status
+Content-Type: application/json
+
+{ "status": "completed" }
+
+### 16 — Status tidak dikenal ditolak (409)
+# @expect 409
+PATCH {{baseUrl}}/api/reservations/{{reservationId}}/status
+Content-Type: application/json
+
+{ "status": "unknown" }
+
+### 17 — Tamu hadir: confirmed → seated (200)
+# @expect 200
+PATCH {{baseUrl}}/api/reservations/{{reservationId}}/status
+Content-Type: application/json
+
+{ "status": "seated" }
+
+### 18 — Pelayanan selesai: seated → completed (200)
+# @expect 200
+PATCH {{baseUrl}}/api/reservations/{{reservationId}}/status
+Content-Type: application/json
+
+{ "status": "completed" }
+
+### 19 — Rincian reservasi completed tidak boleh diubah (409)
+# @expect 409
+PUT {{baseUrl}}/api/reservations/{{reservationId}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2, "items": []
+}
+
+### 20 — Laporan: completed menambah revenue (200)
+# @expect 200
+GET {{baseUrl}}/api/reports?from={{date}}&to={{date}}
+
+### 21 — Exporter CSV; simpan melalui Save Response Body (200)
+# @expect 200
+GET {{baseUrl}}/api/reports/export?from={{date}}&to={{date}}&format=csv
+
+### 22 — Exporter JSON memakai kontrak sama, output berbeda (200)
+# @expect 200
+GET {{baseUrl}}/api/reports/export?from={{date}}&to={{date}}&format=json
+
+### 23 — Reservasi kedua setelah slot completed, tanpa menu (201)
+# @expect 201
+# @name createCancellation
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2, "items": []
+}
+
+### 24 — Batalkan reservasi kedua (200); riwayat tetap disimpan
+# @expect 200
+PATCH {{baseUrl}}/api/reservations/{{cancelId}}/status
+Content-Type: application/json
+
+{ "status": "cancelled" }
+
+### 25 — Cancelled tidak dapat dibuka kembali (409)
+# @expect 409
+PATCH {{baseUrl}}/api/reservations/{{cancelId}}/status
+Content-Type: application/json
+
+{ "status": "confirmed" }
+
+### 26 — Slot cancelled bisa dipesan lagi (201)
+# @expect 201
+# @name createReplacement
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2, "items": []
+}
+
+### 27 — Batalkan pengganti agar tidak menyisakan slot aktif (200)
+# @expect 200
+PATCH {{baseUrl}}/api/reservations/{{replacementId}}/status
+Content-Type: application/json
+
+{ "status": "cancelled" }
+
+### 28 — Pelanggan dengan riwayat tidak dapat dihapus (409)
+# @expect 409
+DELETE {{baseUrl}}/api/customers/{{customerId}}
+
+### 29 — Pelanggan sementara khusus untuk uji DELETE (201)
+# @expect 201
+# @name createTemporaryCustomer
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+{ "name": "Pelanggan Sementara REST", "phone": "088{{$randomInt 100000000 999999999}}" }
+
+### 30 — Hapus pelanggan sementara tanpa riwayat (204, body kosong)
+# @expect 204
+DELETE {{baseUrl}}/api/customers/{{temporaryCustomerId}}
+
+### 31 — Hapus ulang pelanggan yang sudah tidak ada (404)
+# @expect 404
+DELETE {{baseUrl}}/api/customers/{{temporaryCustomerId}}
+
+### 32 — Nama kosong/nomor tidak valid ditolak (400)
+# @expect 400
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+{ "name": " ", "phone": "123" }
+
+### 33 — Payload array bukan objek pelanggan (400)
+# @expect 400
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+[]
+
+### 34 — JSON rusak: error parser, bukan error database (400)
+# @expect 400
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+{ "name": "JSON sengaja rusak",
+
+### 35 — Tipe jumlah tamu string ditolak (400)
+# @expect 400
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": "2", "items": []
+}
+
+### 36 — Tanggal kalender palsu ditolak (400)
+# @expect 400
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "2099-02-30T18:00", "duration": 90, "guests": 2, "items": []
+}
+
+### 37 — Menu duplikat ditolak (400)
+# @expect 400
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}}, "tableId": {{tableId}},
+  "startAt": "{{startAt}}", "duration": 90, "guests": 2,
+  "items": [{ "menuItemId": {{menuId}}, "quantity": 1 }, { "menuItemId": {{menuId}}, "quantity": 2 }]
+}
+
+### 38 — Periode laporan terbalik ditolak (400)
+# @expect 400
+GET {{baseUrl}}/api/reports?from=2100-12-31&to=2000-01-01
+
+### 39 — Query tanggal wajib diisi (400)
+# @expect 400
+GET {{baseUrl}}/api/reservations
+
+### 40 — PDF bukan format exporter server (400); PDF tersedia via cetak browser
+# @expect 400
+GET {{baseUrl}}/api/reports/export?from={{date}}&to={{date}}&format=pdf
+
+### 41 — Endpoint tidak dikenal (404)
+# @expect 404
+GET {{baseUrl}}/api/tidak-ada
+
+### 42 — ID nonnumerik ditolak (400)
+# @expect 400
+DELETE {{baseUrl}}/api/customers/abc
+
+### 43 — Reservasi tidak ditemukan (404)
+# @expect 404
+PATCH {{baseUrl}}/api/reservations/2147483647/status
+Content-Type: application/json
+
+{ "status": "seated" }
+
+### 44 — Awal tahun 2000 WIB sekarang valid (200)
+# @expect 200
+GET {{baseUrl}}/api/reports?from=2000-01-01&to=2000-01-01
+
+### 45 — Laporan akhir; satu completed dan dua cancelled dari alur ini (200)
+# @expect 200
+# @name finalReport
+GET {{baseUrl}}/api/reports?from={{date}}&to={{date}}

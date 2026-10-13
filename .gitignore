@@ -1,0 +1,45 @@
+# Dependency terpasang dan lingkungan Python lokal.
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Konfigurasi lokal/kredensial; contoh konfigurasi tetap ikut Git.
+.env
+.env.*
+!.env.example
+
+# Log, cache, hasil uji sementara, dan artefak paket pengumpulan.
+*.log
+.npm/
+.cache/
+coverage/
+/test-results/
+/.playwright-mcp/
+/pengumpulan/
+
+# Dokumen referensi yang diunggah sebagai contoh, bukan sumber proyek.
+/04-Presentasi.pptx.pdf
+/laporan-proyek-sistem-restoran.docx
+
+# Pengaturan editor pribadi; launch.json dan extensions.json tetap ikut Git.
+/.vscode/settings.json
+/.vscode/*.log
+*.code-workspace
+
+# Berkas sementara editor/Office dan metadata sistem operasi.
+*.tmp
+*.temp
+*.swp
+*.swo
+~$*
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Sumber aplikasi, schema.sql, tests, scripts, docs/diagram, README,
+# rest-client.http, package.json, dan package-lock.json tetap ikut Git.
+
+docs/*
+.vscode

@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#244a3b" />
+    <title>Rasa & Ruang — Sistem Pemesanan Restoran</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" type="module"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#reservations"
+        ><span class="brand-mark" aria-hidden="true">r.</span
+        ><span>rasa & ruang<small>RESTAURANT MANAGER</small></span></a
+      >
+      <p class="nav-label">RUANG KERJA</p>
+      <nav aria-label="Navigasi utama">
+        <a href="#reservations" class="nav-link active" data-page="reservations"
+          ><span aria-hidden="true">▦</span> Reservasi
+          <span class="nav-count" id="nav-count">0</span></a
+        >
+        <a href="#customers" class="nav-link" data-page="customers"
+          ><span aria-hidden="true">♧</span> Pelanggan</a
+        >
+        <a href="#menu" class="nav-link" data-page="menu"
+          ><span aria-hidden="true">☷</span> Daftar menu</a
+        >
+        <a href="#reports" class="nav-link" data-page="reports"
+          ><span aria-hidden="true">▥</span> Laporan</a
+        >
+      </nav>
+      <div class="sidebar-note">
+        <span class="note-icon" aria-hidden="true">✦</span
+        ><strong>Pelayanan dimulai<br />dari persiapan yang baik.</strong>
+        <p>Atur meja, sambut tamu,<br />ciptakan pengalaman.</p>
+      </div>
+      <div class="sidebar-footer">
+        <span class="avatar">RR</span
+        ><span
+          >Restoran Rasa & Ruang<small
+            >Aplikasi praktik sertifikasi</small
+          ></span
+        >
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <span
+          >Manajemen restoran <span class="crumb">/</span>
+          <strong id="breadcrumb">Reservasi</strong></span
+        ><span class="connection" id="connection"
+          ><i></i> Menghubungkan database</span
+        >
+      </header>
+      <main id="main">
+        <section
+          class="page active"
+          id="page-reservations"
+          aria-labelledby="reservation-heading"
+        >
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">SETIAP TAMU, DIPERSIAPKAN.</p>
+              <h1 id="reservation-heading">Reservasi meja</h1>
+              <p>Kelola kedatangan tamu dan pesanan dalam satu tempat.</p>
+            </div>
+            <button class="button primary" id="new-reservation">
+              <span aria-hidden="true">＋</span> Buat reservasi
+            </button>
+          </div>
+          <div class="stats-grid" id="reservation-stats"></div>
+          <section class="panel tables-panel" aria-labelledby="tables-heading">
+            <div class="panel-heading">
+              <div>
+                <h2 id="tables-heading">Ruang untuk setiap cerita</h2>
+                <p>Kondisi meja pada tanggal dan jam yang dipilih.</p>
+              </div>
+              <label class="time-label"
+                >Lihat pada
+                <input
+                  id="table-time"
+                  type="time"
+                  value="18:00"
+                  aria-label="Jam kondisi meja"
+              /></label>
+            </div>
+            <div class="table-grid" id="table-grid"></div>
+          </section>
+          <section class="panel" aria-labelledby="list-heading">
+            <div class="panel-heading list-heading">
+              <div>
+                <h2 id="list-heading">
+                  Daftar reservasi
+                  <span class="count-pill" id="list-count">0</span>
+                </h2>
+                <p id="list-date-caption">Memuat reservasi…</p>
+              </div>
+              <label class="date-control"
+                ><input
+                  type="date"
+                  id="reservation-date"
+                  aria-label="Tanggal reservasi"
+              /></label>
+            </div>
+            <div class="list-toolbar">
+              <div class="filter-tabs" role="group" aria-label="Filter status">
+                <button class="filter-tab active" data-status="all">
+                  Semua</button
+                ><button class="filter-tab" data-status="confirmed">
+                  Terkonfirmasi</button
+                ><button class="filter-tab" data-status="seated">
+                  Tamu hadir</button
+                ><button class="filter-tab" data-status="completed">
+                  Selesai</button
+                ><button class="filter-tab" data-status="cancelled">
+                  Dibatalkan
+                </button>
+              </div>
+              <input
+                type="search"
+                class="search"
+                id="reservation-search"
+                placeholder="Cari nama atau nomor…"
+                aria-label="Cari reservasi"
+              />
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pelanggan</th>
+                    <th>Meja & tamu</th>
+                    <th>Jadwal (WIB)</th>
+                    <th>Pesanan</th>
+                    <th>Status</th>
+                    <th class="align-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="reservation-rows"></tbody>
+              </table>
+            </div>
+            <div class="panel-bottom">
+              <span id="reservation-result-count">0 reservasi</span
+              ><span>Waktu ditampilkan dalam WIB · UTC+7</span>
+            </div>
+          </section>
+        </section>
+
+        <section
+          class="page"
+          id="page-customers"
+          aria-labelledby="customer-heading"
+          hidden
+        >
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">KENALI TAMU ANDA.</p>
+              <h1 id="customer-heading">Pelanggan</h1>
+              <p>Simpan kontak dan lihat jumlah kunjungan pelanggan.</p>
+            </div>
+            <button class="button primary" id="new-customer">
+              ＋ Tambah pelanggan
+            </button>
+          </div>
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>
+                Daftar pelanggan
+                <span class="count-pill" id="customer-count">0</span>
+              </h2>
+              <input
+                type="search"
+                class="search"
+                id="customer-search"
+                placeholder="Cari nama atau telepon…"
+                aria-label="Cari pelanggan"
+              />
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nama pelanggan</th>
+                    <th>Telepon</th>
+                    <th>Email</th>
+                    <th>Reservasi</th>
+                    <th class="align-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-rows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section
+          class="page"
+          id="page-menu"
+          aria-labelledby="menu-heading"
+          hidden
+        >
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">DARI DAPUR KAMI.</p>
+              <h1 id="menu-heading">Daftar menu</h1>
+              <p>Menu yang dapat ditambahkan ke pesanan reservasi.</p>
+            </div>
+            <span class="soft-label">Harga dalam rupiah</span>
+          </div>
+          <div class="menu-grid" id="menu-grid"></div>
+        </section>
+
+        <section
+          class="page"
+          id="page-reports"
+          aria-labelledby="report-heading"
+          hidden
+        >
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">CATATAN UNTUK LANGKAH BERIKUTNYA.</p>
+              <h1 id="report-heading">Laporan pemesanan</h1>
+              <p>
+                Ringkasan reservasi dan pendapatan berdasarkan tanggal
+                kedatangan.
+              </p>
+            </div>
+            <div class="button-group">
+              <button class="button" id="print-report">Cetak / PDF</button
+              ><button class="button primary" id="export-report">
+                ↓ Ekspor CSV
+              </button>
+            </div>
+          </div>
+          <form class="panel report-filter" id="report-filter">
+            <label
+              >Dari tanggal<input
+                type="date"
+                id="report-from"
+                required /></label
+            ><label
+              >Sampai tanggal<input
+                type="date"
+                id="report-to"
+                required /></label
+            ><button class="button primary" type="submit">
+              Tampilkan laporan
+            </button>
+          </form>
+          <p class="report-period" id="report-period"></p>
+          <div class="stats-grid" id="report-stats"></div>
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Ringkasan harian</h2>
+                <p>
+                  Pendapatan dihitung hanya dari reservasi berstatus selesai.
+                </p>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Reservasi</th>
+                    <th>Selesai</th>
+                    <th>Dibatalkan</th>
+                    <th>Tamu*</th>
+                    <th class="align-right">Pendapatan</th>
+                  </tr>
+                </thead>
+                <tbody id="report-rows"></tbody>
+              </table>
+            </div>
+            <div class="panel-bottom">
+              *Jumlah tamu tidak mencakup reservasi yang dibatalkan.
+            </div>
+          </section>
+        </section>
+        <footer class="main-footer">
+          <span>rasa & ruang</span
+          ><span>Sederhana mengelola. Hangat melayani.</span>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="reservation-dialog" aria-labelledby="reservation-dialog-title">
+      <form id="reservation-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">SAMBUT KEDATANGAN TAMU</p>
+            <h2 id="reservation-dialog-title">Buat reservasi</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-close="reservation-dialog"
+            aria-label="Tutup formulir"
+          >
+            ×
+          </button>
+        </div>
+        <div class="dialog-body">
+          <input type="hidden" name="id" />
+          <div class="form-section-title">
+            <span>01</span> Pelanggan & jadwal
+          </div>
+          <div class="field full">
+            <label for="booking-customer">Pelanggan</label>
+            <div class="inline-field">
+              <select id="booking-customer" name="customerId" required></select
+              ><button class="button" type="button" id="quick-customer">
+                ＋ Baru
+              </button>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="booking-date">Tanggal</label
+              ><input id="booking-date" name="date" type="date" required />
+            </div>
+            <div class="field">
+              <label for="booking-time">Jam kedatangan (WIB)</label
+              ><input id="booking-time" name="time" type="time" required />
+            </div>
+            <div class="field">
+              <label for="booking-duration">Durasi</label
+              ><select id="booking-duration" name="duration">
+                <option value="30">30 menit</option>
+                <option value="60">60 menit</option>
+                <option value="90" selected>90 menit</option>
+                <option value="120">120 menit</option>
+                <option value="180">180 menit</option>
+                <option value="240">240 menit</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="booking-guests">Jumlah tamu</label
+              ><input
+                id="booking-guests"
+                name="guests"
+                type="number"
+                min="1"
+                max="8"
+                value="2"
+                required
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="booking-table">Meja</label
+            ><select id="booking-table" name="tableId" required></select>
+          </div>
+          <div class="form-section-title">
+            <span>02</span> Pesanan menu <small>Opsional</small>
+          </div>
+          <div id="booking-items" class="booking-items"></div>
+          <p class="field-hint">
+            Isi jumlah pada menu yang dipesan. Harga akhir dihitung oleh server.
+          </p>
+          <div class="field">
+            <label for="booking-notes">Catatan <small>Opsional</small></label
+            ><textarea
+              id="booking-notes"
+              name="notes"
+              rows="2"
+              maxlength="500"
+              placeholder="Contoh: kursi bayi atau permintaan khusus"
+            ></textarea>
+          </div>
+          <div class="order-total">
+            <span>Total pesanan</span><strong id="booking-total">Rp0</strong>
+          </div>
+          <p class="form-error" id="booking-error" role="alert" hidden></p>
+        </div>
+        <div class="dialog-footer">
+          <button class="button" type="button" data-close="reservation-dialog">
+            Batal</button
+          ><button class="button primary" type="submit" id="save-reservation">
+            Simpan reservasi
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog
+      id="customer-dialog"
+      class="small-dialog"
+      aria-labelledby="customer-dialog-title"
+    >
+      <form id="customer-form">
+        <div class="dialog-heading">
+          <h2 id="customer-dialog-title">Tambah pelanggan</h2>
+          <button
+            type="button"
+            class="icon-button"
+            data-close="customer-dialog"
+            aria-label="Tutup formulir pelanggan"
+          >
+            ×
+          </button>
+        </div>
+        <div class="dialog-body">
+          <input type="hidden" name="id" />
+          <div class="field">
+            <label for="customer-name">Nama lengkap</label
+            ><input
+              id="customer-name"
+              name="name"
+              maxlength="100"
+              required
+              autocomplete="name"
+            />
+          </div>
+          <div class="field">
+            <label for="customer-phone">Nomor telepon</label
+            ><input
+              id="customer-phone"
+              name="phone"
+              maxlength="20"
+              type="tel"
+              required
+              autocomplete="tel"
+              placeholder="081234567890"
+            />
+          </div>
+          <div class="field">
+            <label for="customer-email">Email <small>Opsional</small></label
+            ><input
+              id="customer-email"
+              name="email"
+              type="email"
+              maxlength="150"
+              autocomplete="email"
+            />
+          </div>
+          <p class="form-error" id="customer-error" role="alert" hidden></p>
+        </div>
+        <div class="dialog-footer">
+          <button class="button" type="button" data-close="customer-dialog">
+            Batal</button
+          ><button class="button primary" type="submit">
+            Simpan pelanggan
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog
+      id="detail-dialog"
+      class="small-dialog"
+      aria-labelledby="detail-title"
+    >
+      <div class="dialog-heading">
+        <h2 id="detail-title">Detail reservasi</h2>
+        <button
+          type="button"
+          class="icon-button"
+          data-close="detail-dialog"
+          aria-label="Tutup detail"
+        >
+          ×
+        </button>
+      </div>
+      <div class="dialog-body" id="detail-content"></div>
+      <div class="dialog-footer">
+        <button class="button" data-close="detail-dialog">Tutup</button>
+      </div>
+    </dialog>
+    <dialog
+      id="confirm-dialog"
+      class="small-dialog"
+      aria-labelledby="confirm-title"
+    >
+      <form id="confirm-form">
+        <div class="dialog-heading">
+          <h2 id="confirm-title">Konfirmasi tindakan</h2>
+        </div>
+        <div class="dialog-body">
+          <p id="confirm-message"></p>
+          <p class="form-error" id="confirm-error" role="alert" hidden></p>
+        </div>
+        <div class="dialog-footer">
+          <button class="button" type="button" data-close="confirm-dialog">
+            Kembali</button
+          ><button class="button primary" type="submit">Lanjutkan</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" hidden></div>
+  </body>
+</html>
